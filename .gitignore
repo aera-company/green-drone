@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# renders brutos do Blender (quadros, EXR, testes); ficam só os .json de calibração
+/3d/renders/*
+!/3d/renders/*.json
+__pycache__/
+
+# config local do Claude Code
+/.claude/

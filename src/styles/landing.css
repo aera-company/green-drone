@@ -1,0 +1,394 @@
+/* Landing Gávea Green. Tokens em sequence.css (.mp). Verde = ação e reconhecimento, não preenchimento.
+   Cenas dirigidas por scroll recebem `--p` (0–1) de ScrollScene; o CSS traduz em máscara e movimento. */
+
+.gg { --header-h: 68px; --gutter: clamp(24px, 7vw, 120px); --rule-dark: rgba(255, 255, 255, .14); --rule: rgba(26, 26, 46, .12); }
+
+/* ---------- cabeçalho ---------- */
+.gg-header {
+  position: fixed; inset: 0 0 auto 0; z-index: 20; height: var(--header-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(20px, 4vw, 56px);
+  pointer-events: none;
+}
+.gg-header > * { pointer-events: auto; }
+.gg-header::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0; transition: opacity .3s ease, background-color .3s ease; background: var(--gv-cold); }
+.gg-header[data-solid="true"]::before { opacity: 1; }
+.gg-header[data-tone="dark"]::before { background: var(--gv-night); }
+.gg-brand { position: relative; display: block; width: 104px; height: 54px; }
+.gg-brand img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity .35s ease; }
+.gg-brand-white { opacity: 0; }
+.gg-header[data-tone="dark"] .gg-brand-color { opacity: 0; }
+.gg-header[data-tone="dark"] .gg-brand-white { opacity: 1; }
+.gg-header-cta {
+  font-size: 14px; font-weight: 500; color: var(--gv-ink); text-decoration: none;
+  padding: 10px 0; border-bottom: 1px solid currentColor; transition: color .35s ease;
+}
+.gg-header[data-tone="dark"] .gg-header-cta { color: var(--gv-white); }
+.gg-header-cta:hover { color: var(--gv-green-dark); }
+.gg-header[data-tone="dark"] .gg-header-cta:hover { color: var(--gv-green); }
+.gg-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; pointer-events: none; }
+.gg-progress > div { height: 100%; background: var(--gv-green); transform: scaleX(0); transform-origin: left; }
+
+/* ---------- tipografia comum ---------- */
+.gg-h2 {
+  margin: 0; font-family: var(--font-display), system-ui, sans-serif; font-weight: 600;
+  font-size: clamp(34px, 3.6vw, 60px); line-height: 1.04; letter-spacing: -0.022em;
+  color: var(--gv-ink); text-wrap: balance; transition: color .6s ease;
+}
+.gg-h2--dark { color: var(--gv-white); }
+.gg-h3 { margin: 40px 0 0; font-family: var(--font-display), system-ui, sans-serif; font-weight: 500; font-size: clamp(20px, 1.6vw, 26px); letter-spacing: -0.01em; color: var(--gv-ink); }
+.gg-lead { margin: 20px 0 0; max-width: 460px; font-size: 17px; line-height: 1.55; color: var(--gv-gray); text-wrap: pretty; }
+.gg-lead--dark, .mp-support--dark { color: #b9b9c2; }
+.gg-kicker { margin: 0 0 20px; font-size: 14px; font-weight: 500; color: var(--gv-green-dark); }
+.gg-kicker--gap { margin-top: 56px; }
+.gg-access .gg-kicker { color: var(--gv-green); }
+.gg-source { color: #8a8a94; }
+
+.gg figure { margin: 0; }
+.gg figure img { display: block; width: 100%; height: auto; }
+.gg figure > figcaption:not(.gg-tag) {
+  display: flex; justify-content: space-between; gap: 16px; margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid var(--rule); font-size: 13px; color: var(--gv-gray);
+}
+.gg-access figure > figcaption, .gg-rov figure > figcaption { border-top-color: var(--rule-dark); color: #d4d4da; }
+.gg-tag { position: absolute; right: 16px; bottom: 14px; z-index: 2; font-size: 12px; color: rgba(255, 255, 255, .62); }
+
+/* ---------- ações ---------- */
+.gg-cta {
+  display: inline-flex; align-items: center; margin-top: 32px; padding: 14px 22px;
+  background: var(--gv-green-dark); color: var(--gv-white);
+  font-size: 15px; font-weight: 500; text-decoration: none; border-radius: 2px;
+  transition: background .2s ease;
+}
+.gg-cta:hover { background: var(--gv-green); }
+.gg-link { font-size: 15px; font-weight: 500; color: var(--gv-ink); text-decoration: none; border-bottom: 1px solid currentColor; padding: 4px 0; }
+.gg-link:hover { color: var(--gv-green-dark); }
+.gg :where(a):focus-visible { outline: 2px solid var(--gv-green); outline-offset: 4px; }
+
+/* ---------- listas de serviço ---------- */
+.gg-services { list-style: none; margin: 0; padding: 0; }
+.gg-services li {
+  display: grid; grid-template-columns: 44px 1fr; align-items: baseline;
+  padding: 14px 0; border-top: 1px solid var(--rule); font-size: 17px; line-height: 1.4; color: var(--gv-ink);
+}
+.gg-services li span { font-size: 13px; color: var(--gv-green-dark); font-variant-numeric: tabular-nums; }
+.gg-services--dark li { border-top-color: var(--rule-dark); color: #e8e8ec; }
+.gg-services--dark li span { color: var(--gv-green); }
+.gg-services--compact { margin-top: 28px; }
+.gg-services--compact li { display: block; padding: 10px 0; font-size: 15px; }
+
+/* =========================================================
+   01 Acesso, continuação: a fresta vira a foto real
+   ========================================================= */
+.gg-opening { position: relative; height: 190vh; background: var(--gv-night); }
+.gg-opening-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+.gg-opening-photo {
+  --e: clamp(0, calc(var(--p, 0) / 0.55), 1);
+  position: absolute; inset: 0;
+  clip-path: inset(calc((1 - var(--e)) * 30%) calc((1 - var(--e)) * 43%));
+  will-change: clip-path;
+}
+.gg .gg-opening-photo img { height: 100%; object-fit: cover; transform: scale(calc(1.2 - 0.2 * var(--e))); will-change: transform; }
+/* leitura do texto sobre a foto */
+.gg-opening-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(12, 11, 10, .82), rgba(12, 11, 10, 0) 48%); }
+.gg-opening-copy {
+  --t: clamp(0, calc((var(--p, 0) - 0.52) / 0.2), 1);
+  position: absolute; z-index: 2; left: var(--gutter); bottom: clamp(48px, 12vh, 140px); max-width: 560px;
+  opacity: var(--t); transform: translate3d(0, calc((1 - var(--t)) * 24px), 0);
+}
+
+/* ---------- onde atua / como trabalha ---------- */
+.gg-access { position: relative; background: var(--gv-night); color: var(--gv-white); padding: 18vh var(--gutter) 18vh; }
+.gg-places-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 6vw; align-items: center; }
+.gg-places-list {
+  list-style: none; margin: 0; padding: 0;
+  font-family: var(--font-display), system-ui, sans-serif; font-weight: 600;
+  font-size: clamp(48px, 6.2vw, 104px); line-height: 1.02; letter-spacing: -0.035em;
+}
+/* cada nome acende quando a lista passa pelo meio da tela */
+.gg-places-list li { opacity: clamp(0.16, calc((var(--p, 0) - 0.22 - var(--i) * 0.06) * 12), 1); }
+.gg-note { margin: 28px 0 0; font-size: 17px; color: #b9b9c2; }
+
+.gg-inside { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 6vw; margin-top: 22vh; align-items: start; }
+.gg-inside-photos { display: grid; gap: 56px; }
+.gg-inside-b { width: 78%; margin-left: 22%; }
+.gg-inside-copy { position: sticky; top: 18vh; }
+.gg-facts { list-style: none; margin: 0; padding: 0; }
+.gg-facts li {
+  padding: 16px 0; border-top: 1px solid var(--rule-dark);
+  font-family: var(--font-display), system-ui, sans-serif; font-weight: 500;
+  font-size: clamp(20px, 1.8vw, 28px); letter-spacing: -0.01em;
+}
+
+/* =========================================================
+   02 Registro: cena presa em quatro passos
+   ========================================================= */
+.gg-record { position: relative; height: 340vh; background: var(--gv-night); transition: background-color .6s ease; }
+.gg-record[data-tone="light"] { background: var(--gv-cold); }
+.gg-record[data-tone="dark"] .gg-h2 { color: var(--gv-white); }
+.gg-record-stage {
+  position: sticky; top: 0; height: 100svh;
+  display: grid; grid-template-columns: minmax(320px, .92fr) 1.08fr; gap: 5vw; align-items: center;
+  padding: calc(var(--header-h) + 3vh) var(--gutter) 6vh;
+}
+.gg-steps { list-style: none; margin: 40px 0 0; padding: 0; }
+.gg-steps li {
+  display: grid; grid-template-columns: 40px 1fr; padding: 14px 0 14px 18px;
+  border-left: 2px solid var(--rule); opacity: .38; transition: opacity .4s ease, border-color .4s ease;
+}
+.gg-steps h3 { margin: 0; font-family: var(--font-display), system-ui, sans-serif; font-weight: 500; font-size: clamp(19px, 1.5vw, 24px); color: var(--gv-ink); }
+.gg-steps p {
+  margin: 0; max-width: 380px; font-size: 15px; line-height: 1.5; color: var(--gv-gray);
+  max-height: 0; overflow: hidden; transition: max-height .5s ease, margin .5s ease;
+}
+.gg-step-n { padding-top: 5px; font-size: 13px; color: var(--gv-green-dark); font-variant-numeric: tabular-nums; }
+
+.gg-record-media { position: relative; height: min(64vh, 34vw); }
+.gg-record-media figure {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  opacity: 0; clip-path: inset(0 100% 0 0);
+  transition: clip-path .9s cubic-bezier(.7, 0, .2, 1), opacity .5s ease;
+}
+.gg-record-frame { position: relative; flex: 1; min-height: 0; }
+.gg .gg-record-frame img { width: 100%; height: 100%; object-fit: contain; object-position: left center; }
+
+.gg-record[data-step="0"] li[data-i="0"], .gg-record[data-step="1"] li[data-i="1"],
+.gg-record[data-step="2"] li[data-i="2"], .gg-record[data-step="3"] li[data-i="3"] { opacity: 1; border-left-color: var(--gv-green); }
+.gg-record[data-step="0"] li[data-i="0"] p, .gg-record[data-step="1"] li[data-i="1"] p,
+.gg-record[data-step="2"] li[data-i="2"] p, .gg-record[data-step="3"] li[data-i="3"] p { max-height: 6em; margin-top: 8px; }
+.gg-record[data-step="0"] figure[data-i="0"], .gg-record[data-step="1"] figure[data-i="1"],
+.gg-record[data-step="2"] figure[data-i="2"], .gg-record[data-step="3"] figure[data-i="3"] { opacity: 1; clip-path: inset(0 0 0 0); }
+
+/* =========================================================
+   03 Em altura: faixas que grudam e se empilham
+   ========================================================= */
+.gg-height { position: relative; background: var(--gv-cold); }
+.gg-height-head { padding: 18vh var(--gutter) 10vh; }
+.gg-height-head .gg-lead { max-width: 520px; }
+.gg-row {
+  position: sticky; top: var(--header-h); height: calc(100svh - var(--header-h));
+  display: grid; grid-template-columns: 2fr 1fr; background: var(--gv-white);
+  box-shadow: 0 -1px 0 var(--rule);
+}
+/* cada faixa fica inteira um trecho antes de a próxima subir por cima */
+.gg-row:not(:last-child) { margin-bottom: 40svh; }
+.gg-row-media { position: relative; overflow: hidden; }
+.gg-row-media .gg-tag { top: 14px; bottom: auto; }
+.gg .gg-row-media img { object-fit: cover; }
+.gg-row-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(12, 11, 10, .62), rgba(12, 11, 10, 0) 55%); }
+.gg-row-media h3 {
+  position: absolute; z-index: 2; left: var(--gutter); right: 18%; bottom: 9vh; margin: 0;
+  font-family: var(--font-display), system-ui, sans-serif; font-weight: 500;
+  font-size: clamp(36px, 4.2vw, 68px); line-height: 1.02; letter-spacing: -0.025em; color: var(--gv-white);
+}
+.gg-row-copy { display: flex; flex-direction: column; justify-content: flex-end; padding: 6vh clamp(24px, 3.5vw, 56px) 9vh; }
+.gg-row-n { margin-bottom: auto; font-size: 13px; color: var(--gv-green-dark); font-variant-numeric: tabular-nums; }
+.gg-row-copy p { margin: 0; max-width: 360px; font-size: 18px; line-height: 1.5; color: var(--gv-ink); }
+
+/* =========================================================
+   04 Subaquático: a água sobe, o drone fica no ar
+   ========================================================= */
+.gg-dive { position: relative; height: 320vh; background: var(--gv-cold); }
+.gg-dive-stage {
+  --w: clamp(0, calc((var(--p, 0) - 0.1) / 0.42), 1);
+  position: sticky; top: 0; height: 100svh; overflow: hidden; background: var(--gv-cold);
+}
+.gg-dive-air {
+  position: absolute; right: 3vw; top: 50%; width: min(56vw, 920px);
+  transform: translate3d(0, calc(-50% - var(--w) * 46vh), 0) scale(calc(1 - var(--w) * 0.14)); will-change: transform;
+}
+.gg .gg-dive-air img { display: block; width: 100%; height: auto; }
+.gg-dive-copy { position: absolute; z-index: 4; left: var(--gutter); max-width: 580px; will-change: opacity, transform; }
+.gg-dive-copy--air { top: 50%; opacity: calc(1 - var(--w) * 1.8); transform: translate3d(0, calc(-50% - var(--w) * 30vh), 0); }
+.gg-dive-line {
+  margin: 0; font-family: var(--font-display), system-ui, sans-serif; font-weight: 600;
+  font-size: clamp(34px, 3.6vw, 60px); line-height: 1.04; letter-spacing: -0.022em; color: var(--gv-ink); text-wrap: balance;
+}
+/* a "água": o filme entra de baixo para cima */
+.gg-dive-water { position: absolute; inset: 0; z-index: 2; background: #08161b; clip-path: inset(calc((1 - var(--w)) * 100%) 0 0 0); }
+.gg-dive-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(calc(1.16 - var(--w) * 0.16)); will-change: transform; }
+.gg-dive-water::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(4, 14, 18, .82), rgba(4, 14, 18, 0) 46%); pointer-events: none; }
+/* linha d'água */
+.gg-dive-stage::after {
+  content: ""; position: absolute; left: 0; right: 0; z-index: 3; height: 1px;
+  top: calc((1 - var(--w)) * 100%); background: rgba(190, 222, 230, .7);
+  opacity: clamp(0, calc(min(var(--w), 1 - var(--w)) * 30), 1);
+}
+.gg-dive-copy--sea {
+  --t: clamp(0, calc((var(--p, 0) - 0.58) / 0.14), 1);
+  bottom: clamp(48px, 10vh, 120px); opacity: var(--t); transform: translate3d(0, calc((1 - var(--t)) * 24px), 0);
+}
+.gg-dive-title { color: var(--gv-white); font-size: clamp(44px, 5.2vw, 88px); }
+
+/* ---------- detalhe do mini-ROV ---------- */
+.gg-rov { position: relative; background: var(--gv-night); color: var(--gv-white); padding: 16vh var(--gutter) 18vh; }
+.gg-rov-top { display: grid; grid-template-columns: 1.1fr .9fr; gap: 6vw; align-items: start; }
+.gg-rov-unit { position: sticky; top: 20vh; }
+.gg-rov .gg-kicker { color: var(--gv-green); }
+.gg-places-list--sm { font-size: clamp(34px, 3.8vw, 64px); }
+.gg-rov-scenes { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(16px, 2vw, 32px); margin-top: 18vh; }
+
+/* =========================================================
+   04 Resultado
+   ========================================================= */
+.gg-results { position: relative; background: var(--gv-night); color: var(--gv-white); padding-bottom: 18vh; }
+.gg-results-photo { position: relative; height: min(78svh, 46vw); overflow: hidden; }
+.gg .gg-results-photo img {
+  position: absolute; left: 0; top: -8%; width: 100%; height: 116%; object-fit: cover;
+  transform: translate3d(0, calc((var(--p, 0) - 0.5) * -8%), 0); will-change: transform;
+}
+.gg-results-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, var(--gv-night), rgba(12, 11, 10, 0) 40%); }
+.gg-results-body {
+  position: relative; display: grid; grid-template-columns: minmax(300px, .9fr) 1.1fr; gap: 6vw;
+  padding: 4vh var(--gutter) 0;
+}
+.gg-sectors { margin: 32px 0 0; font-size: 15px; font-weight: 500; color: var(--gv-green); }
+.gg-benefits { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; align-content: start; }
+.gg-benefits li {
+  padding: 18px 0 20px; border-top: 1px solid var(--rule-dark);
+  font-family: var(--font-display), system-ui, sans-serif; font-weight: 500;
+  font-size: clamp(17px, 1.35vw, 21px); line-height: 1.3; letter-spacing: -0.005em;
+}
+
+/* =========================================================
+   05 Próximo passo
+   ========================================================= */
+.gg-contact {
+  position: relative; min-height: 100svh; background: var(--gv-cold);
+  display: grid; grid-template-columns: minmax(300px, 0.9fr) 1.1fr; align-items: center;
+  padding: calc(var(--header-h) + 8vh) 0 10vh var(--gutter); overflow: hidden;
+}
+.gg-contact-copy { max-width: 520px; position: relative; z-index: 1; }
+.gg-brief-list { list-style: none; margin: 24px 0 0; padding: 0; max-width: 420px; }
+.gg-brief-list li { display: flex; gap: 16px; align-items: baseline; padding: 11px 0; border-top: 1px solid var(--rule); font-size: 16px; color: var(--gv-ink); }
+.gg-brief-list span { font-size: 13px; color: var(--gv-green-dark); font-variant-numeric: tabular-nums; }
+.gg-contact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 20px 28px; }
+.gg-contact-actions .gg-cta, .gg-contact-actions .gg-link { margin-top: 32px; }
+.gg-person { display: grid; gap: 4px; margin-top: 44px; font-style: normal; font-size: 15px; color: var(--gv-gray); }
+.gg-person strong { font-weight: 500; color: var(--gv-ink); }
+.gg-person a { width: fit-content; }
+.gg-person a:hover { color: var(--gv-green-dark); }
+.gg-contact-visual { position: relative; }
+.gg-contact-visual img { display: block; max-width: none; height: auto; }
+.gg-contact-drone { width: 118%; margin-left: -6%; }
+.gg-contact-rov { position: absolute; left: 0; bottom: -13%; width: 40%; }
+
+.gg-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 28px var(--gutter); background: var(--gv-cold);
+  border-top: 1px solid var(--rule); font-size: 12px; line-height: 1.6; color: var(--gv-gray);
+}
+.gg-footer p { margin: 0; text-align: right; }
+.gg-footer a:hover { color: var(--gv-green-dark); }
+.gg-footer-logo { width: 88px; height: auto; }
+
+/* ---------- paisagem baixa (notebook 1280×720 etc.) ---------- */
+@media (min-aspect-ratio: 1/1) and (max-height: 780px) {
+  .gg-h2 { font-size: clamp(30px, 3vw, 46px); }
+  .gg-steps { margin-top: 24px; }
+  .gg-steps li { padding: 10px 0 10px 18px; }
+  .gg-services--compact { margin-top: 18px; }
+  .gg-services--compact li { padding: 7px 0; font-size: 14px; }
+  .gg-lead { font-size: 15px; margin-top: 14px; }
+}
+
+/* ---------- retrato / mobile ---------- */
+@media (max-aspect-ratio: 1/1) {
+  .gg { --header-h: 60px; --gutter: 20px; }
+  .gg-brand { width: 84px; height: 44px; }
+  .gg-header-cta { font-size: 13px; }
+  .mp-copy--reveal .gg-cta { margin-top: 20px; padding: 12px 18px; font-size: 14px; }
+  .gg-h2 { font-size: clamp(28px, 8vw, 38px); }
+  .gg-lead { font-size: 15px; }
+
+  .gg-opening { height: 190vh; }
+  .gg-opening-photo { clip-path: inset(calc((1 - var(--e)) * 32%) calc((1 - var(--e)) * 36%)); }
+  .gg-opening-copy { right: var(--gutter); bottom: 8svh; }
+
+  .gg-access { padding: 14vh var(--gutter); }
+  .gg-places-wrap, .gg-inside { grid-template-columns: 1fr; gap: 48px; }
+  .gg-places-list { font-size: clamp(44px, 14vw, 64px); }
+  .gg-inside { margin-top: 14vh; }
+  .gg-inside-b { width: 100%; margin-left: 0; }
+  .gg-inside-copy { position: relative; top: auto; }
+  .gg figure > figcaption:not(.gg-tag) { flex-direction: column; gap: 2px; font-size: 12px; }
+
+  .gg-record { height: 360vh; }
+  .gg-record-stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: 20px; align-items: start; padding-top: calc(var(--header-h) + 3svh); padding-bottom: 4svh; }
+  .gg-steps { margin-top: 20px; }
+  .gg-steps li { padding: 8px 0 8px 14px; grid-template-columns: 32px 1fr; }
+  .gg-steps h3 { font-size: 17px; }
+  .gg-steps p { font-size: 14px; }
+  .gg-record-media { height: auto; min-height: 30svh; }
+  .gg-record-media figure { justify-content: flex-start; }
+  .gg-record-frame { flex: none; }
+  .gg .gg-record-frame img { height: auto; }
+
+  .gg-height-head { padding: 14vh var(--gutter) 6vh; }
+  .gg-row { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .gg-row-media h3 { bottom: 4vh; right: var(--gutter); font-size: clamp(30px, 8.4vw, 40px); }
+  .gg-row-copy { padding: 20px var(--gutter) 28px; }
+  .gg-row-n { margin-bottom: 10px; }
+  .gg-row-copy p { font-size: 15px; }
+
+  .gg-dive-air { right: auto; left: 50%; top: 56%; width: 112vw; transform: translate3d(-50%, calc(-50% - var(--w) * 50vh), 0) scale(calc(1 - var(--w) * 0.14)); }
+  .gg-dive-copy { right: var(--gutter); }
+  .gg-dive-copy--air { top: 15svh; transform: translate3d(0, calc(var(--w) * -20vh), 0); }
+  .gg-dive-video { object-position: 28% 50%; }
+  .gg-dive-copy--sea { bottom: 8svh; }
+  .gg-dive-title { font-size: clamp(36px, 10vw, 48px); }
+
+  .gg-rov { padding: 12vh var(--gutter); }
+  .gg-rov-top { grid-template-columns: 1fr; gap: 48px; }
+  .gg-rov-unit { position: relative; top: auto; }
+  .gg-places-list--sm { font-size: clamp(32px, 9.6vw, 44px); }
+  .gg-rov-scenes { grid-template-columns: 1fr; margin-top: 12vh; gap: 32px; }
+
+  .gg-results-photo { height: 46svh; }
+  .gg-results-body { grid-template-columns: 1fr; gap: 40px; }
+  .gg-benefits { grid-template-columns: 1fr; }
+
+  .gg-contact-actions .gg-link { margin-top: 8px; }
+  .gg-contact { grid-template-columns: 1fr; padding: calc(var(--header-h) + 48px) 20px 0; align-content: start; }
+  .gg-contact-visual { margin-top: 32px; padding-bottom: 12vh; }
+  .gg-contact-drone { width: 104%; margin-left: 0; }
+  .gg-contact-rov { left: -2%; bottom: 6vh; width: 52%; }
+  .gg-footer { flex-direction: column; align-items: flex-start; padding: 24px 20px; }
+  .gg-footer p { text-align: left; }
+}
+
+/* ---------- movimento reduzido: sem pins, tudo visível em ordem de leitura ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .gg-brand img, .gg-header-cta, .gg-cta, .gg-h2 { transition: none; }
+  .gg-header { position: sticky; background: var(--gv-cold); }
+  .gg-header[data-tone] .gg-brand-color { opacity: 1; }
+  .gg-header[data-tone] .gg-brand-white { opacity: 0; }
+  .gg-header[data-tone] .gg-header-cta { color: var(--gv-ink); }
+  .gg-progress { display: none; }
+
+  .gg-opening { height: auto; }
+  .gg-opening-stage { position: relative; }
+  .gg-opening-photo { clip-path: none; }
+  .gg .gg-opening-photo img { transform: none; }
+  .gg-opening-copy { opacity: 1; transform: none; }
+  .gg-places-list li { opacity: 1; }
+
+  .gg-record, .gg-record[data-tone] { height: auto; background: var(--gv-cold); transition: none; }
+  .gg-record[data-tone] .gg-h2 { color: var(--gv-ink); }
+  .gg-record-stage { position: relative; height: auto; padding-top: 12vh; padding-bottom: 12vh; align-items: start; }
+  .gg-steps li { opacity: 1; transition: none; }
+  .gg-steps p { max-height: none; margin-top: 8px; }
+  .gg-record-media { height: auto; display: grid; gap: 40px; }
+  .gg-record-media figure { position: relative; opacity: 1; clip-path: none; transition: none; }
+  .gg-record-frame { flex: none; }
+  .gg .gg-record-frame img { height: auto; }
+
+  .gg-dive { height: auto; background: var(--gv-night); }
+  .gg-dive-stage { position: relative; }
+  .gg-dive-air, .gg-dive-copy--air, .gg-dive-stage::after { display: none; }
+  .gg-dive-water { clip-path: none; }
+  .gg-dive-video { transform: none; }
+  .gg-dive-copy--sea { opacity: 1; transform: none; }
+  .gg-rov-unit { position: relative; top: auto; }
+  .gg .gg-results-photo img { transform: none; }
+}

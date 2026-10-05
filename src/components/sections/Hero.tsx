@@ -1,409 +1,270 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { EyebrowBadge } from "@/components/ui/EyebrowBadge";
-import { HudFrame } from "@/components/ui/HudFrame";
-import {
-  ANNOTATIONS,
-  FRAME_COUNT,
-  HERO_TEXT_FADE_END,
-  framePath,
-} from "@/lib/hero";
+import Image from "next/image";
+import { useEffect, useRef } from "react";
 
-/**
- * Hero com sequência de frames dirigida por scroll.
- *
- * Como funciona:
- *  - A <section> tem 400vh (.scroll-animation) → cria a distância de scroll.
- *  - O wrapper interno é `sticky top-0` → fica fixo enquanto a seção rola.
- *  - O handler de scroll calcula o progresso (0→1), escolhe o frame
- *    correspondente e o desenha no <canvas> com "cover-fit".
- *
- * Regras de performance (não remover):
- *  - requestAnimationFrame + tickingRef: 1 update por frame, nunca síncrono.
- *  - Canvas e opacidades atualizam direto via ref, nunca via React state.
- *  - React state só para o conjunto de cards visíveis, e só quando muda.
- *  - Pré-carrega todos os frames com barra de loading antes de iniciar.
- *  - Canvas escalado por devicePixelRatio (nítido em telas retina).
- *  - Listener de scroll passivo.
- */
+type FlightPoint = { at: number; x: number; y: number; scale: number; rotate: number };
+
+const desktopFlight: FlightPoint[] = [
+  { at: 0, x: 69, y: 55, scale: 1, rotate: -7 },
+  { at: 0.19, x: 72, y: 43, scale: 0.86, rotate: 7 },
+  { at: 0.38, x: 78, y: 72, scale: 0.60, rotate: 13 },
+  { at: 0.47, x: 34, y: 74, scale: 0.59, rotate: -15 },
+  { at: 0.54, x: 30, y: 55, scale: 0.66, rotate: -12 },
+  { at: 0.68, x: 57, y: 79, scale: 0.43, rotate: 10 },
+  { at: 0.81, x: 87, y: 117, scale: 0.18, rotate: 24 },
+  { at: 1, x: 105, y: 135, scale: 0.1, rotate: 24 },
+];
+
+const mobileFlight: FlightPoint[] = [
+  { at: 0, x: 61, y: 70, scale: 0.78, rotate: -8 },
+  { at: 0.19, x: 67, y: 69, scale: 0.66, rotate: 6 },
+  { at: 0.38, x: 78, y: 86, scale: 0.46, rotate: 12 },
+  { at: 0.54, x: 60, y: 86, scale: 0.50, rotate: -11 },
+  { at: 0.68, x: 70, y: 91, scale: 0.34, rotate: 10 },
+  { at: 0.81, x: 96, y: 118, scale: 0.14, rotate: 24 },
+  { at: 1, x: 110, y: 135, scale: 0.08, rotate: 24 },
+];
+
+const clamp = (n: number) => Math.min(1, Math.max(0, n));
+const ramp = (n: number, a: number, b: number) => clamp((n - a) / (b - a));
+const mix = (a: number, b: number, t: number) => a + (b - a) * t;
+
+function flightAt(progress: number, mobile: boolean): FlightPoint {
+  const points = mobile ? mobileFlight : desktopFlight;
+  for (let i = 0; i < points.length - 1; i++) {
+    const from = points[i];
+    const to = points[i + 1];
+    if (progress <= to.at) {
+      const t = ramp(progress, from.at, to.at);
+      const eased = t * t * (3 - 2 * t);
+      return {
+        at: progress,
+        x: mix(from.x, to.x, eased),
+        y: mix(from.y, to.y, eased),
+        scale: mix(from.scale, to.scale, eased),
+        rotate: mix(from.rotate, to.rotate, eased),
+      };
+    }
+  }
+  return points[points.length - 1];
+}
+
+function sceneOpacity(progress: number, index: number) {
+  switch (index) {
+    case 0: return 1 - ramp(progress, 0.17, 0.25);
+    case 1: return ramp(progress, 0.18, 0.26) * (1 - ramp(progress, 0.36, 0.44));
+    case 2: return ramp(progress, 0.38, 0.46) * (1 - ramp(progress, 0.57, 0.65));
+    case 3: return ramp(progress, 0.59, 0.68) * (1 - ramp(progress, 0.87, 0.90));
+    default: return 1;
+  }
+}
+
+function contentOpacity(progress: number, index: number) {
+  switch (index) {
+    case 0: return 1 - ramp(progress, 0.15, 0.20);
+    case 1: return ramp(progress, 0.23, 0.29) * (1 - ramp(progress, 0.34, 0.39));
+    case 2: return ramp(progress, 0.43, 0.49) * (1 - ramp(progress, 0.55, 0.60));
+    case 3: return ramp(progress, 0.65, 0.70) * (1 - ramp(progress, 0.83, 0.88));
+    default: return ramp(progress, 0.83, 0.89);
+  }
+}
+
+const emailHref =
+  "mailto:andre.barbosa@gaveagroup.com?subject=Avalia%C3%A7%C3%A3o%20de%20inspe%C3%A7%C3%A3o%20com%20drone";
+
 export function Hero() {
-  const sectionRef = useRef<HTMLElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const heroTextRef = useRef<HTMLDivElement | null>(null);
-  const bigLeftTextRef = useRef<HTMLDivElement | null>(null);
-  const progressFillRef = useRef<HTMLDivElement | null>(null);
-  const powerReadoutRef = useRef<HTMLSpanElement | null>(null);
+  const storyRef = useRef<HTMLElement | null>(null);
+  const droneRef = useRef<HTMLDivElement | null>(null);
+  const sceneRefs = useRef<(HTMLElement | null)[]>([]);
+  const progressRef = useRef<HTMLDivElement | null>(null);
+  const progressUiRef = useRef<HTMLDivElement | null>(null);
+  const chapterRef = useRef<HTMLSpanElement | null>(null);
+  const photoRef = useRef<HTMLDivElement | null>(null);
 
-  const framesRef = useRef<HTMLImageElement[]>([]);
-  const tickingRef = useRef(false);
-  const loadedRef = useRef(false);
-  const lastFrameRef = useRef(-1);
-  const prevVisibleIdsRef = useRef("");
-
-  const [loadProgress, setLoadProgress] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [visibleCards, setVisibleCards] = useState<Set<string>>(new Set());
-
-  // Pré-carrega todos os frames. onerror também conta para não travar a
-  // barra de loading caso /public/frames ainda esteja vazia.
   useEffect(() => {
-    let cancelled = false;
-    let loadedCount = 0;
-    const imgs: HTMLImageElement[] = [];
-
-    for (let i = 1; i <= FRAME_COUNT; i++) {
-      const img = new Image();
-      img.src = framePath(i);
-      img.onload = () => {
-        if (cancelled) return;
-        loadedCount++;
-        setLoadProgress(loadedCount / FRAME_COUNT);
-        if (loadedCount === FRAME_COUNT) {
-          loadedRef.current = true;
-          setLoaded(true);
-        }
-      };
-      img.onerror = () => {
-        if (cancelled) return;
-        loadedCount++;
-        setLoadProgress(loadedCount / FRAME_COUNT);
-        if (loadedCount === FRAME_COUNT) {
-          loadedRef.current = true;
-          setLoaded(true);
-        }
-      };
-      imgs.push(img);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      sceneRefs.current.forEach((scene) => {
+        if (!scene) return;
+        scene.inert = false;
+        scene.setAttribute("aria-hidden", "false");
+      });
+      return;
     }
-    framesRef.current = imgs;
+    let scheduled = 0;
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    const update = () => {
+      scheduled = 0;
+      const story = storyRef.current;
+      const drone = droneRef.current;
+      if (!story || !drone) return;
 
-  const drawFrame = useCallback((index: number) => {
-    const canvas = canvasRef.current;
-    const img = framesRef.current[index];
-    if (!canvas || !img || !img.complete || !img.naturalWidth) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+      const range = Math.max(1, story.offsetHeight - window.innerHeight);
+      const progress = clamp(-story.getBoundingClientRect().top / range);
+      const point = flightAt(progress, window.innerWidth < 720);
+      drone.style.transform =
+        "translate3d(" + point.x + "vw, " + point.y +
+        "vh, 0) translate(-50%, -50%) scale(" + point.scale +
+        ") rotate(" + point.rotate + "deg)";
+      drone.style.opacity = String(1 - ramp(progress, 0.64, 0.76));
 
-    const cw = canvas.width;
-    const ch = canvas.height;
-    const imgRatio = img.naturalWidth / img.naturalHeight;
-    const canvasRatio = cw / ch;
-
-    // Cover-fit centralizado (equivalente a object-fit: cover).
-    let drawW: number;
-    let drawH: number;
-    if (canvasRatio > imgRatio) {
-      drawW = cw;
-      drawH = cw / imgRatio;
-    } else {
-      drawH = ch;
-      drawW = ch * imgRatio;
-    }
-
-    // No mobile, dá um zoom de 1.3x para o assunto ler melhor em tela pequena.
-    if (window.innerWidth <= 768) {
-      drawW *= 1.3;
-      drawH *= 1.3;
-    }
-
-    const drawX = (cw - drawW) / 2;
-    const drawY = (ch - drawH) / 2;
-
-    ctx.clearRect(0, 0, cw, ch);
-    ctx.drawImage(img, drawX, drawY, drawW, drawH);
-  }, []);
-
-  const resizeCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    // DPR limitado a 2: nítido no retina sem custo excessivo de memória/pintura.
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    canvas.style.width = window.innerWidth + "px";
-    canvas.style.height = window.innerHeight + "px";
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.scale(1, 1);
-    drawFrame(lastFrameRef.current >= 0 ? lastFrameRef.current : 0);
-  }, [drawFrame]);
-
-  useEffect(() => {
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-    return () => window.removeEventListener("resize", resizeCanvas);
-  }, [resizeCanvas]);
-
-  useEffect(() => {
-    if (!loaded) return;
-    drawFrame(0);
-    lastFrameRef.current = 0;
-  }, [loaded, drawFrame]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (tickingRef.current) return;
-      tickingRef.current = true;
-
-      requestAnimationFrame(() => {
-        tickingRef.current = false;
-        const section = sectionRef.current;
-        if (!section || !loadedRef.current) return;
-
-        // 1) Progresso 0→1 dentro da seção sticky.
-        const rect = section.getBoundingClientRect();
-        const scrollable = section.offsetHeight - window.innerHeight;
-        const progress =
-          scrollable <= 0
-            ? 0
-            : Math.min(1, Math.max(0, -rect.top / scrollable));
-
-        // 2) Frame correspondente.
-        const frameIndex = Math.min(
-          FRAME_COUNT - 1,
-          Math.floor(progress * FRAME_COUNT),
-        );
-        if (frameIndex !== lastFrameRef.current) {
-          lastFrameRef.current = frameIndex;
-          drawFrame(frameIndex);
+      sceneRefs.current.forEach((scene, index) => {
+        if (!scene) return;
+        const opacity = sceneOpacity(progress, index);
+        const textOpacity = contentOpacity(progress, index);
+        scene.style.opacity = String(opacity);
+        if (index === 4) {
+          scene.style.transform = "translate3d(0," + ((1 - ramp(progress, 0.78, 0.87)) * 100) + "%,0)";
         }
-
-        // 3) Texto principal some no começo da rolagem (direto via ref).
-        if (heroTextRef.current) {
-          const opacity = Math.max(0, 1 - progress / HERO_TEXT_FADE_END);
-          heroTextRef.current.style.opacity = String(opacity);
-          heroTextRef.current.style.transform = `translateY(${(1 - opacity) * 12}px)`;
+        scene.style.pointerEvents = textOpacity > 0.7 ? "auto" : "none";
+        scene.inert = textOpacity < 0.7;
+        scene.setAttribute("aria-hidden", textOpacity < 0.7 ? "true" : "false");
+        const content = scene.querySelector<HTMLElement>(".scene-content");
+        if (content) {
+          content.style.opacity = String(textOpacity);
+          content.style.transform = "translate3d(0," + ((1 - textOpacity) * 32) + "px,0)";
         }
-
-        // Texto grande secundário entra um pouco depois.
-        if (bigLeftTextRef.current) {
-          const op = Math.min(1, Math.max(0, (progress - 0.1) / 0.08));
-          bigLeftTextRef.current.style.opacity = String(op);
-          bigLeftTextRef.current.style.transform = `translateY(${(1 - op) * 14}px)`;
+        if (index === 0) {
+          const note = scene.querySelector<HTMLElement>(".scene-side-note");
+          if (note) note.style.opacity = String(textOpacity);
         }
-
-        // Barra de progresso do HUD.
-        if (progressFillRef.current) {
-          progressFillRef.current.style.transform = `scaleX(${progress})`;
-        }
-
-        // Leitura numérica decorativa.
-        if (powerReadoutRef.current) {
-          const pwr = 87.3 + Math.sin(progress * Math.PI * 2) * 6.7;
-          powerReadoutRef.current.textContent = pwr.toFixed(1) + "%";
-        }
-
-        // 4) Cards de annotation: só chama setState quando o conjunto muda.
-        const newVisible = new Set<string>();
-        for (const a of ANNOTATIONS) {
-          if (progress >= a.show && progress <= a.hide) newVisible.add(a.id);
-        }
-        const newIds = [...newVisible].sort().join(",");
-        if (newIds !== prevVisibleIdsRef.current) {
-          prevVisibleIdsRef.current = newIds;
-          setVisibleCards(newVisible);
+        if (index === 3) {
+          const gallery = scene.querySelector<HTMLElement>(".result-gallery");
+          if (gallery) gallery.style.opacity = String(1 - ramp(progress, 0.83, 0.87));
         }
       });
+
+      if (photoRef.current) {
+        photoRef.current.style.transform =
+          "scale(" + (1.04 + progress * 0.18) + ")";
+      }
+      const lightScene = progress < 0.18 || (progress > 0.44 && progress < 0.59) || progress > 0.78;
+      if (progressUiRef.current) progressUiRef.current.style.color = lightScene ? "#34683f" : "#bde85e";
+      if (progressRef.current) {
+        progressRef.current.style.transform =
+          (window.innerWidth < 720 ? "scaleX(" : "scaleY(") + progress + ")";
+        progressRef.current.style.background = lightScene ? "#34683f" : "#bde85e";
+      }
+      const gallery = sceneRefs.current[3]?.querySelectorAll<HTMLElement>(".result-gallery figure");
+      gallery?.forEach((figure, index) => {
+        const reveal = ramp(progress, 0.62 + index * 0.035, 0.73 + index * 0.035);
+        figure.style.transform = "translate3d(0," + ((1 - reveal) * (index ? 90 : 55)) + "px,0)";
+      });
+      if (chapterRef.current) {
+        chapterRef.current.textContent =
+          String(Math.min(5, Math.floor(progress * 5) + 1)).padStart(2, "0") + " / 05";
+      }
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [drawFrame]);
+    const schedule = () => {
+      if (!scheduled) scheduled = requestAnimationFrame(update);
+    };
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    schedule();
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      if (scheduled) cancelAnimationFrame(scheduled);
+    };
+  }, []);
 
   return (
-    <section ref={sectionRef} className="scroll-animation relative">
-      <div
-        className="sticky top-0 min-h-[100dvh] w-full overflow-hidden bg-background"
-        style={{ height: "100dvh", willChange: "transform", transform: "translateZ(0)" }}
-      >
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 h-full w-full"
-          style={{ willChange: "contents", transform: "translateZ(0)" }}
-        />
+    <section ref={storyRef} id="inicio" className="flight-story" aria-label="Inspeção com drones da Gávea Green Tech">
+      <div className="flight-sticky">
+        <div className="flight-grid" aria-hidden="true" />
+        <header className="flight-header">
+          <a href="#inicio" className="flight-brand" aria-label="Gávea Green Tech, início">
+            <Image src="/media/gavea-green-tech-logo.png" alt="" width={2048} height={593} priority />
+          </a>
+          <div className="flight-header-label">INSPEÇÃO ROBOTIZADA <span>/</span> INDÚSTRIA</div>
+          <a className="flight-header-cta" href="#contato" aria-label="Falar sobre um ativo">Falar sobre um ativo <span aria-hidden="true">↗</span></a>
+        </header>
 
-        {/* Vinheta para legibilidade do texto sobre a imagem. */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(120% 80% at 50% 10%, transparent 30%, rgba(10,10,11,0.45) 70%, rgba(10,10,11,0.85) 100%)",
-          }}
-        />
-
-        {/* Cantos estilo HUD. */}
-        <div className="pointer-events-none absolute left-6 top-24 text-accent md:left-10 md:top-28">
-          <HudFrame corner="tl" size={26} />
-        </div>
-        <div className="pointer-events-none absolute right-6 top-24 text-accent md:right-10 md:top-28">
-          <HudFrame corner="tr" size={26} />
-        </div>
-        <div className="pointer-events-none absolute bottom-14 left-6 text-accent md:bottom-16 md:left-10">
-          <HudFrame corner="bl" size={26} />
-        </div>
-        <div className="pointer-events-none absolute bottom-14 right-6 text-accent md:bottom-16 md:right-10">
-          <HudFrame corner="br" size={26} />
-        </div>
-
-        {/* ===== TEXTO PRINCIPAL DA HERO — edite aqui ===== */}
-        <div
-          ref={heroTextRef}
-          className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-start gap-5 px-6 pb-24 md:px-12 md:pb-28"
-          style={{ transition: "opacity 80ms linear" }}
-        >
-          <EyebrowBadge>SUA TAG · CATEGORIA · STATUS</EyebrowBadge>
-          <h1 className="max-w-[14ch] font-sans text-5xl font-semibold leading-[0.95] tracking-tighter text-foreground md:text-7xl lg:text-8xl">
-            Seu título
-            <br />
-            <span className="text-accent">de impacto.</span>
-          </h1>
-          <p className="max-w-[42ch] font-sans text-sm leading-relaxed text-muted md:text-base">
-            Subtítulo descrevendo a proposta de valor. Role para ver a animação
-            de frames acompanhar a rolagem.
-          </p>
-        </div>
-
-        {/* ===== TEXTO SECUNDÁRIO (entra no meio do scroll) ===== */}
-        <div
-          ref={bigLeftTextRef}
-          className="pointer-events-none absolute bottom-24 left-6 z-10 hidden max-w-[58%] flex-col gap-5 md:flex md:bottom-28 md:left-12"
-          style={{ opacity: 0, transition: "opacity 80ms linear" }}
-        >
-          <span className="inline-flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
-            <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_10px_rgba(212,162,47,0.85)]" />
-            Subtítulo &mdash; Seção
-          </span>
-          <h2 className="font-sans font-semibold leading-[0.88] tracking-tighter text-foreground text-[clamp(4rem,9.5vw,9rem)]">
-            Frase
-            <br />
-            em <span className="text-accent">destaque</span>
-          </h2>
-          <p className="max-w-[36ch] font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
-            Uma linha de apoio em mono, opcional.
-          </p>
-        </div>
-
-        {/* Rótulo superior esquerdo. */}
-        <div className="pointer-events-none absolute left-6 top-20 z-10 flex items-center gap-2 md:left-10 md:top-24">
-          <div className="h-px w-8 bg-accent/60" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted">
-            Status &mdash; Live
-          </span>
-        </div>
-
-        {/* Leitura numérica superior direita. */}
-        <div className="pointer-events-none absolute right-6 top-20 z-10 flex items-center gap-3 md:right-10 md:top-24">
-          <span className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted">
-            Métrica
-          </span>
-          <span
-            ref={powerReadoutRef}
-            className="font-mono text-[10px] uppercase tracking-[0.22em] text-accent"
-          >
-            87.3%
-          </span>
-          <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_10px_rgba(212,162,47,0.85)]" />
-        </div>
-
-        {/* Barra de progresso + rótulos do rodapé. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
-          <div className="mx-6 mb-3 h-px bg-white/10 md:mx-10">
-            <div
-              ref={progressFillRef}
-              className="h-full origin-left bg-accent"
-              style={{ transform: "scaleX(0)", transition: "transform 80ms linear" }}
-            />
+        <article ref={(el) => { sceneRefs.current[0] = el; }} className="flight-scene scene-intro">
+          <div className="scene-intro-glow" aria-hidden="true" />
+          <div className="scene-content">
+            <p className="scene-eyebrow"><span>01 / 05</span> Acesso que vira informação</p>
+            <h1>PRIMEIRO,<br /><em>O DRONE.</em></h1>
+            <p className="scene-lead">Inspeção de espaços confinados com imagens e dados para decidir antes da entrada da equipe.</p>
+            <a href="#contato" className="scene-link">Solicitar avaliação técnica <span aria-hidden="true">↗</span></a>
           </div>
-          <div className="mx-6 flex items-center justify-between pb-4 font-mono text-[10px] uppercase tracking-[0.28em] text-muted md:mx-10">
-            <span>SEQ 001 / {FRAME_COUNT}</span>
-            <span>SISTEMA // DIAGNÓSTICO</span>
-            <span>Role &darr;</span>
-          </div>
-        </div>
+          <Image className="flight-static" src="/media/drone-cutout.png" alt="Drone de inspeção da Gávea Green Tech" width={1000} height={667} priority />
+          <p className="scene-side-note">TANQUES · SILOS · CALDEIRAS · GALERIAS</p>
+        </article>
 
-        {/* Cards de annotation (desktop), posicionados à direita. */}
-        {ANNOTATIONS.map((a, i) => {
-          const visible = visibleCards.has(a.id);
-          const position =
-            i === 0
-              ? "top-[22%] right-6 md:right-12"
-              : i === 1
-              ? "top-1/2 -translate-y-1/2 right-6 md:right-12"
-              : "bottom-24 right-6 md:bottom-28 md:right-12";
-          return (
-            <div
-              key={a.id}
-              className={`pointer-events-none absolute ${position} z-20 hidden w-[420px] max-w-[90vw] md:block`}
-            >
-              <figure
-                className={`card-surface pointer-events-auto p-6 transition-all duration-400 ease-out ${
-                  visible ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0"
-                }`}
-              >
-                <blockquote className="font-sans text-xl font-medium leading-snug tracking-tight text-foreground">
-                  &ldquo;{a.quote}&rdquo;
-                </blockquote>
-                <figcaption className="mt-4 flex items-center justify-between">
-                  <span className="font-sans text-sm text-zinc-300">{a.speaker}</span>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-accent">
-                    {a.film}
-                  </span>
-                </figcaption>
-              </figure>
+        <article ref={(el) => { sceneRefs.current[1] = el; }} className="flight-scene scene-access" aria-hidden="true" inert>
+          <div ref={photoRef} className="scene-access-photo">
+            <Image src="/media/industrial-vessel-empty.png" alt="" fill sizes="100vw" />
+          </div>
+          <div className="scene-access-shade" />
+          <div className="scene-content">
+            <p className="scene-eyebrow"><span>02 / 05</span> Aplicações</p>
+            <h2>O interior<br />não precisa<br /><em>esperar.</em></h2>
+            <p>O drone leva a inspeção visual aos pontos de acesso complexo. Sua equipe vê o ativo antes de definir o próximo passo.</p>
+            <div className="application-list" aria-label="Exemplos de ativos">
+              <span>Tanques</span><span>Silos</span><span>Caldeiras</span><span>Galerias</span>
             </div>
-          );
-        })}
-
-        {/* Cards de annotation (mobile), empilhados. */}
-        <div className="pointer-events-none absolute inset-x-0 top-[38%] z-20 flex flex-col gap-3 px-6 md:hidden">
-          {ANNOTATIONS.map((a) => {
-            const visible = visibleCards.has(a.id);
-            return (
-              <figure
-                key={a.id}
-                className={`card-surface pointer-events-auto p-5 transition-all duration-400 ease-out ${
-                  visible
-                    ? "translate-y-0 opacity-100"
-                    : "translate-y-4 opacity-0"
-                }`}
-              >
-                <blockquote className="font-sans text-base font-medium leading-snug text-foreground">
-                  &ldquo;{a.quote}&rdquo;
-                </blockquote>
-                <figcaption className="mt-3 flex items-center justify-between">
-                  <span className="font-sans text-xs text-zinc-300">
-                    {a.speaker}
-                  </span>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-accent">
-                    {a.film}
-                  </span>
-                </figcaption>
-              </figure>
-            );
-          })}
-        </div>
-
-        {/* Tela de loading com progresso real do pré-carregamento. */}
-        {!loaded && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-5 bg-background px-6">
-            <EyebrowBadge>CARREGANDO</EyebrowBadge>
-            <div className="h-px w-60 bg-white/10 md:w-80">
-              <div
-                className="h-full bg-accent transition-[width] duration-150 ease-out"
-                style={{ width: `${Math.round(loadProgress * 100)}%` }}
-              />
-            </div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-muted">
-              Carregando frames &nbsp;&middot;&nbsp; {Math.round(loadProgress * 100)}%
-            </p>
           </div>
-        )}
+        </article>
+
+        <article ref={(el) => { sceneRefs.current[2] = el; }} className="flight-scene scene-difference" aria-hidden="true" inert>
+          <div className="scene-difference-image">
+            <Image src="/media/drone-em-tubulacao.jpg" alt="Drone inspecionando a parede interna de um ativo" fill sizes="(max-width: 720px) 100vw, 50vw" />
+          </div>
+          <div className="scene-content">
+            <p className="scene-eyebrow"><span>03 / 05</span> Diferenciais</p>
+            <h2>POUCA LUZ.<br />SEM GPS.<br /><em>COM VISÃO.</em></h2>
+            <p>Câmera e iluminação para registrar o interior em ambientes desafiadores, com operação remota e menor necessidade de acesso humano inicial.</p>
+            <div className="difference-points"><span>01 / Acesso remoto</span><span>02 / Registro visual</span><span>03 / Base para análise</span></div>
+          </div>
+        </article>
+
+        <article ref={(el) => { sceneRefs.current[3] = el; }} className="flight-scene scene-results" aria-hidden="true" inert>
+          <div className="scene-content">
+            <p className="scene-eyebrow"><span>04 / 05</span> Resultado da inspeção</p>
+            <h2>O QUE ELE VÊ<br /><em>VIRA DECISÃO.</em></h2>
+            <p>Capturas do interior e dados de inspeção ajudam a documentar a condição do ativo e orientar a análise técnica.</p>
+          </div>
+          <div className="result-gallery">
+            <figure>
+              <div className="result-image"><Image src="/media/monitoramento.jpg" alt="Tela de monitoramento e mapeamento espacial da inspeção" fill sizes="(max-width: 720px) 90vw, 46vw" /></div>
+              <figcaption><span>01</span> Monitoramento</figcaption>
+            </figure>
+            <figure>
+              <div className="result-image"><Image src="/media/resultados-inspecao.jpg" alt="Registro visual e representação espacial de uma inspeção" fill sizes="(max-width: 720px) 90vw, 35vw" /></div>
+              <figcaption><span>02</span> Evidências do ativo</figcaption>
+            </figure>
+          </div>
+        </article>
+
+        <article ref={(el) => { sceneRefs.current[4] = el; }} className="flight-scene scene-contact" aria-hidden="true" inert>
+          <div className="scene-content">
+            <p className="scene-eyebrow"><span>05 / 05</span> Próximo passo</p>
+            <h2>QUAL ATIVO<br />VOCÊ PRECISA<br /><em>ENXERGAR?</em></h2>
+            <p>Conte o desafio de acesso. A Gávea Green Tech ajuda a definir a abordagem de inspeção.</p>
+            <div className="contact-actions">
+              <a href={emailHref} className="contact-main">Solicitar avaliação técnica <span aria-hidden="true">↗</span></a>
+              <a href="https://wa.me/5521999115741" target="_blank" rel="noopener noreferrer" className="contact-alt">Conversar pelo WhatsApp ↗</a>
+            </div>
+          </div>
+          <div className="contact-orbit" aria-hidden="true" />
+          <footer>GÁVEA GREEN TECH <span>INSPEÇÃO ROBOTIZADA PARA ATIVOS CRÍTICOS</span></footer>
+        </article>
+
+        <div ref={droneRef} className="flight-drone" aria-hidden="true">
+          <div className="flight-drone-body">
+            <Image src="/media/drone-cutout.png" alt="" width={1000} height={667} priority />
+          </div>
+          <div className="flight-drone-halo" />
+        </div>
+        <div ref={progressUiRef} className="flight-progress" aria-hidden="true">
+          <span ref={chapterRef}>01 / 05</span>
+          <div className="flight-progress-track"><div ref={progressRef} /></div>
+          <span>SCROLL TO EXPLORE ↓</span>
+        </div>
       </div>
+      <div id="contato" className="flight-contact-anchor" aria-hidden="true" />
     </section>
   );
 }

@@ -31,13 +31,13 @@ export function ScrollRevealText({
 
   const leadWords = lead ? lead.split(" ") : [];
   const bodyWords = body.split(" ");
-  wordRefs.current = [];
+  const wordCount = leadWords.length + bodyWords.length;
 
   useEffect(() => {
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    const words = wordRefs.current;
+    const words = wordRefs.current.slice(0, wordCount);
 
     if (reduced) {
       words.forEach((w) => w && (w.style.color = to));
@@ -71,7 +71,7 @@ export function ScrollRevealText({
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
-  }, [lead, body, align, from, to]);
+  }, [lead, body, align, from, to, wordCount]);
 
   let idx = 0;
   const renderWords = (words: string[]) =>

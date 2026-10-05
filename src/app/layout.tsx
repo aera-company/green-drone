@@ -1,25 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// Edite por projeto. Defina metadataBase com o domínio de produção
-// para gerar canonical / Open Graph absolutos.
 export const metadata: Metadata = {
-  title: "Landing Base 3D",
+  title: "Inspeção industrial com drone | Gávea Green",
   description:
-    "Base de landing page com hero de frame-sequence dirigida por scroll.",
-  metadataBase: new URL("http://localhost:3000"),
+    "Inspeção visual em espaços confinados, com imagens de alta resolução e acompanhamento da operação.",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
@@ -28,9 +17,9 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
     >
-      <body className="relative min-h-full bg-background text-foreground grain">
+      <body className="relative min-h-full bg-background text-foreground">
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
       </body>
     </html>

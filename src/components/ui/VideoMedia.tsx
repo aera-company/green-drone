@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 /* Vídeo de preenchimento (mudo, loop) com poster e cover-fit.
    Renderiza só a mídia (sem wrapper) — o card-pai controla tamanho e deve
@@ -16,16 +16,11 @@ type Props = {
 
 export function VideoMedia({ src, poster, label, className = "" }: Props) {
   const ref = useRef<HTMLVideoElement | null>(null);
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  }, []);
 
   // Play no hover do card-pai (o overlay costuma cobrir o vídeo).
   useEffect(() => {
     const el = ref.current;
-    if (!el || reduced) return;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const host = el.parentElement;
     if (!host) return;
     const onEnter = () => el.play().catch(() => {});
@@ -39,18 +34,7 @@ export function VideoMedia({ src, poster, label, className = "" }: Props) {
       host.removeEventListener("pointerenter", onEnter);
       host.removeEventListener("pointerleave", onLeave);
     };
-  }, [reduced]);
-
-  if (reduced) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={poster}
-        alt={label}
-        className={`absolute inset-0 h-full w-full object-cover ${className}`}
-      />
-    );
-  }
+  }, []);
 
   return (
     <video

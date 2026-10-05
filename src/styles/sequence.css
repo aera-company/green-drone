@@ -1,0 +1,86 @@
+/* PASS 01 · Motion proof. Tokens Gávea Green (referência MERUS). */
+.mp {
+  --gv-green: #009f4a;
+  --gv-green-dark: #007a38;
+  --gv-white: #ffffff;
+  --gv-cold: #f7f7f8;
+  --gv-ink: #1a1a2e;
+  --gv-gray: #555565;
+  --gv-night: #0c0b0a;
+  background: var(--gv-cold);
+  color: var(--gv-ink);
+  font-family: var(--font-text), system-ui, sans-serif;
+}
+
+.mp-story { position: relative; height: 420vh; }
+.mp-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; background: var(--gv-cold); }
+.mp-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.mp-copy { position: absolute; z-index: 2; will-change: opacity, transform; }
+.mp-copy--reveal { left: clamp(24px, 7vw, 120px); top: 50%; translate: 0 -50%; max-width: min(560px, 42vw); }
+.mp-copy--dark { left: clamp(24px, 7vw, 120px); bottom: clamp(48px, 12vh, 140px); max-width: min(520px, 44vw); opacity: 0; visibility: hidden; }
+
+.mp-eyebrow {
+  margin: 0 0 20px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--gv-green-dark);
+}
+.mp-eyebrow--dark { color: var(--gv-green); }
+.mp-title {
+  margin: 0;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 600;
+  font-size: clamp(40px, 4.6vw, 76px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  color: var(--gv-ink);
+  text-wrap: balance;
+}
+.mp-title--dark { color: var(--gv-white); font-size: clamp(32px, 3.4vw, 56px); }
+.mp-support { margin: 24px 0 0; max-width: 400px; font-size: 17px; line-height: 1.5; color: var(--gv-gray); text-wrap: pretty; }
+
+.mp-load { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; z-index: 3; }
+.mp-load > div { height: 100%; background: var(--gv-green); transform: scaleX(0); transform-origin: left; transition: opacity .6s ease; }
+.mp-debug {
+  position: absolute; right: 16px; top: 16px; z-index: 4; padding: 6px 10px;
+  font: 12px/1.2 ui-monospace, monospace; color: #fff; background: rgba(0, 0, 0, .55);
+}
+
+.mp-still { display: none; }
+.mp-after { padding: 20vh clamp(24px, 7vw, 120px); background: var(--gv-night); color: #b9b9c2; font-size: 14px; }
+
+/* Paisagem mais quadrada que 3:2 (ex.: 4:3): texto mais estreito para não encostar no drone. */
+@media (max-aspect-ratio: 3/2) and (min-aspect-ratio: 1/1) {
+  .mp-copy--reveal { top: 9vh; translate: none; max-width: 44vw; }
+  .mp-title { font-size: clamp(32px, 3.9vw, 52px); }
+  .mp-support { font-size: 14px; max-width: 34vw; margin-top: 16px; }
+}
+
+/* Retrato (celular, tablet em pé): composição própria; texto em cima, drone embaixo (quadros verticais). */
+@media (max-aspect-ratio: 1/1) {
+  .mp-story { height: 360vh; }
+  .mp-copy--reveal { left: 20px; right: 20px; top: 10svh; translate: none; max-width: none; }
+  .mp-copy--dark { left: 20px; right: 20px; bottom: 9svh; max-width: none; }
+  .mp-title { font-size: clamp(30px, 8.6vw, 40px); }
+  .mp-title--dark { font-size: clamp(28px, 8vw, 36px); }
+  .mp-support { font-size: 15px; margin-top: 12px; }
+  .mp-eyebrow { margin-bottom: 12px; }
+}
+
+/* Movimento reduzido: sem pin, sem sequência; os mesmos conteúdos em ordem de leitura. */
+@media (prefers-reduced-motion: reduce) {
+  .mp-story { height: auto; display: flex; flex-direction: column; }
+  .mp-stage, .mp-still { display: contents; }
+  .mp-canvas, .mp-load, .mp-debug { display: none; }
+  .mp-copy { position: relative; left: auto; top: auto; bottom: auto; translate: none; transform: none !important;
+    opacity: 1 !important; visibility: visible !important; max-width: none; padding: 12vh clamp(24px, 7vw, 120px) 6vh; }
+  .mp-copy--reveal { order: 1; }
+  .mp-still figure { margin: 0; }
+  .mp-still img { display: block; width: 100%; height: auto; }
+  .mp-still figure:nth-child(1) { order: 2; }
+  .mp-still figure:nth-child(2) { order: 3; }
+  .mp-copy--dark { order: 4; background: var(--gv-night); }
+  .mp-still figure:nth-child(3) { order: 5; }
+}
